@@ -1,7 +1,7 @@
 let fields = [
     null,
-    'circle',
-    'cross',
+    null,
+    null,
     null,
     null,
     null,
@@ -9,6 +9,15 @@ let fields = [
     null,
     null,
 ];
+
+const WINNING_COMBINATIONS = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // horizontal
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // vertical
+    [0, 4, 8], [2, 4, 6], // diagonal
+];
+
+let currentPlayer = 'circle';
+
 
 function init() {
     render();
@@ -29,7 +38,7 @@ function render() {
             } else if (fields[index] === 'cross') {
                 symbol = generateCrossSVG();
             }
-            tableHtml += `<td>${symbol}</td>`;
+            tableHtml += `<td onclick="handleClick(this, ${index})">${symbol}</td>`;
         }
         tableHtml += '</tr>';
     }
@@ -37,6 +46,49 @@ function render() {
 
     // Set table HTML to contentDiv
     contentDiv.innerHTML = tableHtml;
+}
+
+function restartGame(){
+    fields = [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    ];
+    render();
+}
+
+function handleClick(cell, index) {
+    if (fields[index] === null) {
+        fields[index] = currentPlayer;
+        cell.innerHTML = currentPlayer === 'circle' ? generateCircleSVG() : generateCrossSVG();
+        cell.onclick = null;
+        currentPlayer = currentPlayer === 'circle' ? 'cross' : 'circle';
+
+        if (isGameFinished()) {
+            const winCombination = getWinningCombination();
+            drawWinningLine(winCombination);
+        }
+    }
+}
+
+function isGameFinished() {
+    return fields.every((field) => field !== null) || getWinningCombination() !== null;
+}
+
+function getWinningCombination() {
+    for (let i = 0; i < WINNING_COMBINATIONS.length; i++) {
+        const [a, b, c] = WINNING_COMBINATIONS[i]; // [0, 1, 2]
+        if (fields[a] === fields[b] && fields[b] === fields[c] && fields[a] !== null) {
+            return WINNING_COMBINATIONS[i];
+        }
+    }
+    return null;
 }
 
 
@@ -76,3 +128,33 @@ function generateCrossSVG() {
     return svgHtml;
 }
 
+
+
+function drawWinningLine(combination) {
+    const lineColor = '#ffffff';
+    const lineWidth = 5;
+  
+    const startCell = document.querySelectorAll(`td`)[combination[0]];
+    const endCell = document.querySelectorAll(`td`)[combination[2]];
+    const startRect = startCell.getBoundingClientRect();
+    const endRect = endCell.getBoundingClientRect();
+  
+    const contentRect = document.getElementById('content').getBoundingClientRect();
+  
+    const lineLength = Math.sqrt(
+      Math.pow(endRect.left - startRect.left, 2) + Math.pow(endRect.top - startRect.top, 2)
+    );
+    const lineAngle = Math.atan2(endRect.top - startRect.top, endRect.left - startRect.left);
+  
+    const line = document.createElement('div');
+    line.style.position = 'absolute';
+    line.style.width = `${lineLength}px`;
+    line.style.height = `${lineWidth}px`;
+    line.style.backgroundColor = lineColor;
+    line.style.top = `${startRect.top + startRect.height / 2 - lineWidth / 2 - contentRect.top}px`;
+    line.style.left = `${startRect.left + startRect.width / 2 - contentRect.left}px`;
+    line.style.transform = `rotate(${lineAngle}rad)`;
+    line.style.transformOrigin = `top left`;
+    document.getElementById('content').appendChild(line);
+  }
+  
